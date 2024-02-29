@@ -1,3 +1,6 @@
+# Regression table entire sample and 5 quantiles
+# Hypothesis testing for entire sample and 5 quantiles
+
 library(dplyr)
 library(gplots)
 library(car)
@@ -15,6 +18,7 @@ library(arsenal)
 suppressPackageStartupMessages(library("tidyverse"))
 
 # Use the merged and cleaned data file "soep_final.csv"
+soep <- read.csv()
 
 # Rename columns for regression 
 soep <- soep %>%
@@ -41,6 +45,43 @@ soep$SYR <- factor(soep$SYR)
 # Regression - Entire Sample 
 reg_1 <- lm(LS ~ WEST89:SYR + AGE + AGE_SQ + FEMALE + MARRIED + FT + PT + APPREN + MINIJOB + HHINC + 0 + SYR, data=soep)
 summary(reg_1)
+
+
+# Hypothesis testing for the entire sample
+linearHypothesis(reg_1, "WEST89:SYR1991 = WEST89:SYR2019")
+
+
+
+
+## Regression analysis by cohort 
+num_quantile <- 5 
+soep$birthyear_quantile <- split_quantile(soep$BIRTHYR, type = num_quantile)
+
+soep_quantile_data <- list()
+reg_quantile <- list()
+hypothesis_results <- list()
+
+for (i in 1:num_quantile) {
+  soep_quantile_data[[i]] <- subset(soep, birthyear_quantile == as.character(i))
+  reg_quantile[[i]] <- lm(LS ~ WEST89:SYR + AGE + AGE_SQ + FEMALE + MARRIED + FT + PT + APPREN + MINIJOB + HHINC + SYR + 0, data = soep_quantile_data[[i]])
+}
+
+# See regression results for each quantile
+reg_quantile
+
+# Hypothesis testing WEST89:SYR1991 = WEST89:SYR2019 for each quantile
+for (i in 1:length(reg_quantile)) {
+  reg <- reg_quantile[[i]]  # Extract the regression object
+  R <- matrix(0, nrow = 1, ncol = length(coef(reg)))
+  colnames(R) <- names(coef(reg))
+  R[1, "WEST89:SYR1991"] <- 1
+  R[1, "WEST89:SYR2019"] <- -1
+  hypothesis_results[[i]] <- linearHypothesis(reg, R, rhs = c(0))
+}
+
+hypothesis_results
+
+
 
 # 2005-2015 vs. 1990-2005, the rate of convergence is higher on average.
 coeff_1995_2005 <- matrix(coef(reg_1)[45:55])
@@ -74,40 +115,3 @@ plot(y=coeff_all$PRED, x=coeff_all$SYR,
      main = "SYR x PRED",
      xlab = "Year", 
      ylab = "PRED")
-
-# Hypothesis testing for the entire sample
-R <- matrix(0, nrow = 1, ncol = length(coef(reg_1)))
-colnames(R) <- names(coef(reg_1))
-R[1, "WEST89:SYR1991"] <- 1
-R[1, "WEST89:SYR2019"] <- -1
-linearHypothesis(reg_1, R, rhs = c(0))
-# or
-linearHypothesis(reg_1, "WEST89:SYR1991 = WEST89:SYR2019")
-
-
-
-
-
-## Regression analysis by cohort
-num_quantile <- 5
-soep$birthyear_quantile <- split_quantile(soep$BIRTHYR, type = num_quantile)
-
-soep_quantile_data <- list()
-reg_quantile <- list()
-hypothesis_results <- list()
-
-for (i in 1:num_quantile) {
-  soep_quantile_data[[i]] <- subset(soep, birthyear_quantile == as.character(i))
-  reg_quantile[[i]] <- lm(LS ~ WEST89:SYR + AGE + AGE_SQ + FEMALE + MARRIED + FT + PT + APPREN + MINIJOB + HHINC + SYR + 0, data = soep_quantile_data[[i]])
-}
-
-for (i in 1:length(reg_quantile)) {
-  reg <- reg_quantile[[i]]  # Extract the regression object
-  R <- matrix(0, nrow = 1, ncol = length(coef(reg)))
-  colnames(R) <- names(coef(reg))
-  R[1, "WEST89:SYR1991"] <- 1
-  R[1, "WEST89:SYR2019"] <- -1
-  hypothesis_results[[i]] <- linearHypothesis(reg, R, rhs = c(0))
-}
-
-hypothesis_results

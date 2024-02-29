@@ -1,3 +1,5 @@
+# Mean life satisfaction plot (five / ten quantiles)
+
 library(dplyr)
 library(gplots)
 library(car)
@@ -35,32 +37,7 @@ soep <- soep %>%
     AGE_SQ = age_sq,
   )
 
-## Summary statistics table
-stargazer(subset(soep, soep$WEST89 == 1), title="Summary Statistics for West Germany Location in 1989", omit.summary.stat = c("N", "min", "max"))
-stargazer(subset(soep, soep$WEST89 == 0), title="Summary Statistics for East Germany Location in 1989", omit.summary.stat = c("N", "min", "max"))
-
-## Create new dataframe with the mean values
-LS_MEAN_SYR <- aggregate(LS ~ SYR, data = soep, FUN = mean)
-LS_MEAN_SYR_WEST89 <- aggregate(LS ~ SYR + WEST89, data = soep, FUN = mean)
-
-# Plot LS mean against Year 
-common_ylim <- range(5.5, 9.5)
-colors <- ifelse(LS_MEAN_SYR_WEST89$WEST89 == 0, "black", "red")
-plot(y=LS_MEAN_SYR_WEST89$LS, x=LS_MEAN_SYR_WEST89$SYR, 
-     pch = ifelse(LS_MEAN_SYR_WEST89$WEST89 == 0, 1, 2),
-     col = colors,
-     font.main = 1,
-     main = "Entire Sample",
-     xlab = "Year", 
-     ylab = "Mean Life Satisfaction",
-     ylim = common_ylim)
-legend("bottomright", legend = c("East Germany", "West Germany"), 
-       col = c("black", "red"), pch = c(1, 2), title = "Location in 1989", cex = 0.7,bty = "n")
-
-
-## Quantile - Birth Cohort
-# Select number of quantiles
-num_quantile <- 5
+num_quantile <- 5 # 10 
 soep$birthyear_quantile <- split_quantile(soep$BIRTHYR, type = num_quantile)
 
 # Find out the birth year range for each quantile
